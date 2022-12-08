@@ -18,5 +18,5 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/miklagard/Turkish-Suffix-Library.git"
-"Bug Tracker" = "https://github.com/miklagard/Turkish-Suffix-Library.git/issues"
+"Homepage" = "https://github.com/miklagard/transpdf.git"
+"Bug Tracker" = "https://github.com/miklagard/transpdf.git/issues"

@@ -287,7 +287,6 @@ class TransPDF(fpdf.FPDF):
         return io.BytesIO(self.output())
 
     def put_image(self, image_file, x, y, w):
-        print(f'{self.image_path}/{image_file}')
         try:
             self.image(f'{self.image_path}/{image_file}', self.pixel(x), self.pixel(y), self.pixel(w))
         except FileNotFoundError:
