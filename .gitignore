@@ -1,6 +1,8 @@
 .DS_Store
 node_modules
 /dist
+/build
+/trans_fpdf.egg-info
 
 # local env files
 .env.local
@@ -22,3 +24,4 @@ yarn-error.log*
 
 # Vue files
 **/.webpack-stats.json
+
