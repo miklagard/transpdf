@@ -11,7 +11,7 @@ setuptools.setup(
     description="Trans FPDF for Python",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/miklagard/Turkish-Suffix-Library.git",
+    url="https://github.com/miklagard/transpdf.git",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
