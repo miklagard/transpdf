@@ -25,6 +25,8 @@ class TransPDF(fpdf.FPDF):
     ):
         super().__init__(orientation, unit, paper_format)
 
+        self.temp_pdf = fpdf.FPDF()
+
         # There are widths of each character for some specific fonts (core fonts) in fPDF library.
         # And that library enforces text to encode into LATIN-1, which triggers error when there are Unicode chars.
         # After deleting helvetica core font, it accepts each char in the string has the width 500 (whatever unit).
@@ -45,6 +47,7 @@ class TransPDF(fpdf.FPDF):
         self.add_fonts()
 
         self.add_page()
+        self.temp_pdf.add_page()
 
         if not empty:
             self.add_header(title, sub_title)
@@ -59,6 +62,13 @@ class TransPDF(fpdf.FPDF):
         for font in fonts[self.color.font]:
             current_font = fonts[self.color.font][font]
             self.add_font(
+                current_font.get('name'),
+                '',
+                current_font.get('ttf'),
+                uni=True
+            )
+
+            self.temp_pdf.add_font(
                 current_font.get('name'),
                 '',
                 current_font.get('ttf'),
@@ -125,6 +135,7 @@ class TransPDF(fpdf.FPDF):
             self.set_text_html_color(color)
 
         self.set_font(font, '', font_size)
+        self.temp_pdf.set_font(font, '', font_size)
 
     def add_line(self, x1, y1, x2, y2):
         self.line(self.pixel(x1), self.pixel(y1), self.pixel(x2), self.pixel(y2))
@@ -175,20 +186,66 @@ class TransPDF(fpdf.FPDF):
 
         self.set_xy(x, y + self.pixel(space))
 
+    def get_max_height_in_row(self, row, widths, border):
+        max_height = 0
+
+        y_before = self.temp_pdf.get_y()
+
+        self.temp_pdf.multi_cell(
+            int(10),
+            self.font_size,
+            txt='X',
+            border=border,
+            fill=True,
+            align=self.color.table_header_align,
+        )
+
+        single_line_height = self.temp_pdf.get_y() - y_before
+
+        for index, cell in enumerate(row):
+            y_before = self.temp_pdf.get_y()
+
+            if type(cell) != dict:
+                cell = {
+                    'title': str(cell)
+                }
+
+            self.temp_pdf.multi_cell(
+                int(widths[index]),
+                self.font_size,
+                txt=cell.get('title', ''),
+                border=border,
+                fill=True,
+                align=self.color.table_header_align,
+            )
+
+            if max_height < self.temp_pdf.get_y() - y_before:
+                max_height = self.temp_pdf.get_y() - y_before
+
+            self.temp_pdf.set_xy(100, y_before)
+
+        return single_line_height, max_height
+
     def set_table_header(self, data, spacing, border, widths):
         self.set_fill_html_color(self.color.table_header_background_color)
         self.set_draw_html_color(self.color.table_header_border_color)
 
+        self.set_default_font('bold', None, self.color.table_header_text)
+
+        single_line_height, max_height = self.get_max_height_in_row(data.get('header', []), widths, border)
+
         x = self.get_x()
 
-        self.set_default_font('bold', None, self.color.table_header_text)
+        y_before = self.get_y()
+        x_before = self.get_x()
 
         for index, header in enumerate(data.get('header', [])):
             y_before = self.get_y()
 
             self.multi_cell(
                 int(widths[index]),
-                4,
+                h=max_height * (max_height / single_line_height),
+                max_line_height=max_height,
                 txt=header.get('title', ''),
                 border=border,
                 fill=True,
@@ -201,7 +258,7 @@ class TransPDF(fpdf.FPDF):
 
         self.set_default_font('regular')
 
-        self.ln(self.font_size * spacing)
+        self.set_xy(x_before, y_before + max_height * (max_height / single_line_height))
 
     def set_table_data(self, data, spacing, border, widths):
         self.set_text_html_color(self.color.table_row_text)
@@ -219,10 +276,17 @@ class TransPDF(fpdf.FPDF):
 
             self.set_fill_html_color(fill_color)
 
-            for index, column in enumerate(row):
-                self.add_table_row(widths, index, column, spacing, border)
+            single_line_height, max_height = self.get_max_height_in_row(row, widths, border)
 
-            self.ln(self.font_size * spacing)
+            before_x = self.get_x()
+            before_y = self.get_y()
+            height = 0
+
+            for index, column in enumerate(row):
+                height = self.add_table_row(widths, index, column, spacing, border, single_line_height, max_height)
+
+            self.set_xy(before_x, before_y + height + spacing)
+
 
     def set_table_footer(self, data, spacing, border, widths):
         self.set_fill_html_color(self.color.table_footer_background_color)
@@ -230,8 +294,16 @@ class TransPDF(fpdf.FPDF):
 
         self.set_default_font('bold', self.color.font_size, self.color.table_footer_text_color)
 
+        single_line_height, max_height = self.get_max_height_in_row(data.get('footer', ()), widths, border)
+
+        before_x = self.get_x()
+        before_y = self.get_y()
+        height = 0
+
         for index, column in enumerate(data.get('footer', ())):
-            self.add_table_row(widths, index, column, spacing, border)
+            height = self.add_table_row(widths, index, column, spacing, border, single_line_height, max_height)
+
+        self.set_xy(before_x, before_y + height)
 
         self.ln(self.font_size * spacing)
 
@@ -246,7 +318,10 @@ class TransPDF(fpdf.FPDF):
         # replace chars
         return number_str.replace(',', ' ')
 
-    def add_table_row(self, widths, index, column, spacing, border):
+    def add_table_row(self, widths, index, column, spacing, border, single_line_height, max_height):
+        y_before = self.get_y()
+        x_before = self.get_x()
+
         if index == 0 and self.color.table_first_row_is_bold:
             self.set_default_font('bold')
         else:
@@ -262,14 +337,19 @@ class TransPDF(fpdf.FPDF):
         else:
             align = 'L'
 
-        self.cell(
-            widths[index],
-            self.font_size * spacing,
+        self.multi_cell(
+            int(widths[index]),
+            h=max_height * (max_height / single_line_height),
+            max_line_height=max_height,
             txt=str(column),
             border=border,
             fill=True,
             align=align,
         )
+
+        self.set_xy(x_before + int(widths[index]), y_before)
+
+        return max_height * (max_height / single_line_height)
 
     def create_table(self, data, spacing=3, border=1):
         sum_of_widths = sum(item['width'] for item in data.get('header', []))
