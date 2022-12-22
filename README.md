@@ -1,3 +1,3 @@
 # transpdf
 
-Extended FPDF2 library 
+Extended FPDF2 library

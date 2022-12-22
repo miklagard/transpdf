@@ -3,9 +3,9 @@ import fpdf
 import io
 import os
 from decimal import Decimal
-from utils.templates import ColorSchema
-from utils.fonts import fonts
-from conf import settings
+from trans_fpdf.utils.templates import ColorSchema
+from trans_fpdf.utils.fonts import fonts
+from trans_fpdf.conf import settings
 
 
 class TransPDF(fpdf.FPDF):

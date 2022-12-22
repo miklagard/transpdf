@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="trans-fpdf",
-    version="0.0.3",
+    version="0.0.4",
     author="Cem Yildiz",
     author_email="cem.yildiz@yandex.com.tr",
     description="Trans FPDF for Python",

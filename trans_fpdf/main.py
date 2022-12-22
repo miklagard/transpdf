@@ -1,4 +1,4 @@
-from pdf import TransPDF
+from trans_fpdf.pdf import TransPDF
 
 
 def print_hi():

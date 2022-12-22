@@ -1,5 +1,5 @@
 import os
-from conf import settings
+from trans_fpdf.conf import settings
 
 
 fonts = {
